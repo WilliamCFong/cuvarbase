@@ -28,7 +28,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Astronomy",
 ]
 dependencies = [
-    "numpy>=1.6",
+    # scikit-cuda 0.5.3 still uses `np.typeDict` (skcuda/misc.py:637), which
+    # was removed in NumPy 1.25. Cap numpy until skcuda releases a fix.
+    "numpy>=1.6,<1.25",
     "scipy",
     "pycuda>=2017.1.1,!=2024.1.2",
     "scikit-cuda",
