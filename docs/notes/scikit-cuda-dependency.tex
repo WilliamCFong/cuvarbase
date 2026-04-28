@@ -1,0 +1,270 @@
+% !TEX program = pdflatex
+% Build:
+%   cd docs/notes && pdflatex scikit-cuda-dependency.tex
+% or:
+%   latexmk -pdf scikit-cuda-dependency.tex
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{titlesec}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue!60!black,
+    citecolor=black,
+}
+
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{codecomment}{RGB}{106,153,85}
+\definecolor{codekw}{RGB}{0,0,180}
+\definecolor{codestr}{RGB}{163,21,21}
+
+\lstset{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{codekw}\bfseries,
+    commentstyle=\color{codecomment}\itshape,
+    stringstyle=\color{codestr},
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    frame=single,
+    framesep=4pt,
+    rulecolor=\color{codebg},
+    xleftmargin=8pt,
+    xrightmargin=8pt,
+    aboveskip=8pt,
+    belowskip=8pt,
+}
+
+\lstdefinelanguage{pyplus}{
+    language=Python,
+    morekeywords={cufft,skcuda,gpuarray,np},
+}
+
+\titleformat{\section}{\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.6em}{}
+
+\title{Technical Note: \texttt{scikit-cuda} as a Dependency of \texttt{cuvarbase}}
+\author{cuvarbase fork (\texttt{WilliamCFong/cuvarbase})}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+\texttt{cuvarbase} is a PyCUDA-backed library of GPU period-finding tools for
+astronomical time series. It depends on \texttt{scikit-cuda} for one thing
+only: GPU FFT plans and the inverse-FFT call inside the adjoint NFFT used by
+the Lomb--Scargle periodogram. \texttt{scikit-cuda} has not had a release since
+June 2019 and is, in practice, abandoned. This note documents (a)~exactly how
+\texttt{cuvarbase} consumes \texttt{scikit-cuda}, (b)~the concrete failures
+caused by upstream's lack of maintenance against modern NumPy and Setuptools,
+(c)~the workaround currently applied in this fork, and (d)~a recommended
+migration path.
+\end{abstract}
+
+\section{Background}
+
+\subsection{What \texttt{cuvarbase} is}
+\texttt{cuvarbase} implements several time-series period finders on the GPU:
+generalized Lomb--Scargle (GLS), Box-Least-Squares (BLS), Conditional Entropy
+(CE), Phase-Dispersion Minimization (PDM2), and an adjoint Non-equispaced FFT
+(NFFT) that the GLS path consumes. Kernels live in
+\texttt{src/cuvarbase/kernels/*.cu} and are compiled at runtime via PyCUDA's
+\texttt{SourceModule}. PyCUDA itself supplies device memory, streams, and the
+JIT compiler --- but \emph{not} an FFT.
+
+\subsection{What \texttt{scikit-cuda} is}
+\texttt{scikit-cuda} (\href{https://github.com/lebedov/scikit-cuda}{\texttt{lebedov/scikit-cuda}})
+is a Python wrapper around NVIDIA's CUDA math libraries (cuBLAS, cuFFT,
+cuSOLVER, cuRAND, etc.). For the FFT in particular, \texttt{skcuda.fft} wraps
+cuFFT plans and execution functions so callers can stay in Python and exchange
+PyCUDA \texttt{GPUArray}s.
+
+\subsection{Why \texttt{cuvarbase} pulls it in}
+The adjoint NFFT in \texttt{src/cuvarbase/cunfft.py} needs an inverse FFT on a
+gridded, oversampled spectrum after the kernel-spreading step. Writing a cuFFT
+binding by hand was avoided in 2017 by reusing
+\texttt{skcuda.fft.Plan}/\texttt{ifft}.
+
+\section{How \texttt{cuvarbase} actually uses \texttt{scikit-cuda}}
+
+The surface area is small. Across the entire package and test suite there are
+exactly two call sites for two APIs:
+
+\begin{lstlisting}[language=pyplus,caption={\texttt{src/cuvarbase/cunfft.py}}]
+import skcuda.fft as cufft
+# ...
+self.cu_plan = cufft.Plan(self.n, self.complex_type, self.complex_type,
+                          stream=self.stream)
+# ...
+cufft.ifft(memory.ghat_g, memory.ghat_g, memory.cu_plan)
+\end{lstlisting}
+
+\begin{lstlisting}[language=pyplus,caption={\texttt{tests/test\_nfft.py}}]
+import skcuda.fft as cufft
+# ...
+plan = cufft.Plan(len(y), np.complex128, np.complex128)
+cufft.ifft(yg, yghat, plan)
+\end{lstlisting}
+
+That is the entire dependency: a constructor (\texttt{Plan}) and an in-place
+inverse-FFT call (\texttt{ifft}). No cuBLAS, cuSOLVER, cuRAND, or other
+\texttt{skcuda.*} subpackage is touched. Everything else is unaffected.
+
+\section{Maintenance status of \texttt{scikit-cuda}}
+
+\begin{itemize}[leftmargin=1.4em]
+    \item \textbf{Last PyPI release:} 0.5.3 (May 2019). No release in the
+    intervening $\sim$6 years (as of \today).
+    \item \textbf{Upstream activity:} the GitHub repository
+    \texttt{lebedov/scikit-cuda} accumulates issues and PRs without merges. It
+    is, by any reasonable definition, archived in spirit if not in flag.
+    \item \textbf{Wheel availability:} two \texttt{py2.py3-none-any} wheels
+    exist on PyPI for 0.5.2/0.5.3 plus three sdists. The pure-Python wheels
+    install cleanly; the runtime requirements (CUDA, PyCUDA, recent NumPy) do
+    not.
+\end{itemize}
+
+\section{Concrete breakage caused by lack of maintenance}
+
+\subsection{NumPy 1.25 removed \texttt{np.typeDict}}
+\label{sec:typedict}
+\texttt{skcuda/misc.py:637} contains:
+
+\begin{lstlisting}[language=pyplus]
+num_types = [np.typeDict[t] for t in
+             ('float32', 'float64', 'complex64', 'complex128')]
+\end{lstlisting}
+
+\noindent
+\texttt{numpy.typeDict} was deprecated in NumPy~1.20 and removed in
+NumPy~1.25. Any \texttt{import skcuda.fft} (or any \texttt{from skcuda import
+*}) under NumPy~$\geq 1.25$ raises:
+
+\begin{lstlisting}[basicstyle=\ttfamily\small]
+AttributeError: module 'numpy' has no attribute 'typeDict'
+\end{lstlisting}
+
+\noindent
+On a fresh \texttt{nox -s tests} install with no NumPy pin, pip resolves to
+NumPy 2.x and both \texttt{tests/test\_lombscargle.py} and
+\texttt{tests/test\_nfft.py} fail at \emph{collection time} --- the test files
+cannot even be imported.
+
+\subsection{\texttt{pkg\_resources} deprecation}
+\texttt{skcuda/\_\_init\_\_.py} declares its namespace via
+\texttt{pkg\_resources.declare\_namespace}. Setuptools is in the process of
+removing \texttt{pkg\_resources} (slated for as early as 2025-11-30 per the
+deprecation warning emitted on every import). Once the API is gone,
+\texttt{import skcuda} fails outright. The project is currently emitting:
+
+\begin{lstlisting}[basicstyle=\ttfamily\small]
+UserWarning: pkg_resources is deprecated as an API.
+DeprecationWarning: Deprecated call to
+    pkg_resources.declare_namespace('skcuda').
+\end{lstlisting}
+
+\subsection{PyCUDA version drift}
+\texttt{cuvarbase}'s pin already excludes \texttt{pycuda~==~2024.1.2} (a
+known-bad release), but scikit-cuda has not been validated against any PyCUDA
+released in the last several years. Future PyCUDA API changes carry no
+guarantee of an upstream skcuda fix.
+
+\section{Current workaround in this fork}
+
+PR \#2 caps NumPy below the breaking version in \texttt{pyproject.toml}:
+
+\begin{lstlisting}[language=pyplus,caption={\texttt{pyproject.toml}}]
+dependencies = [
+    # scikit-cuda 0.5.3 still uses `np.typeDict` (skcuda/misc.py:637),
+    # which was removed in NumPy 1.25. Cap numpy until skcuda releases
+    # a fix.
+    "numpy>=1.6,<1.25",
+    "scipy",
+    "pycuda>=2017.1.1,!=2024.1.2",
+    "scikit-cuda",
+]
+\end{lstlisting}
+
+\noindent
+This restores test collection. It is a stop-gap with two costs:
+
+\begin{enumerate}[leftmargin=1.6em]
+    \item NumPy 1.24 is the last version under the cap. Subsequent NumPy
+    improvements (performance, new APIs, native macOS arm64 support, NumPy 2
+    typing) are inaccessible to consumers of \texttt{cuvarbase}.
+    \item NumPy 1.24 has no Python 3.12 wheels, so the practical Python
+    upper bound is 3.11 even though \texttt{requires-python} still says
+    \texttt{>=3.9} and the classifiers list 3.12.
+\end{enumerate}
+
+The pin does \emph{nothing} for the \texttt{pkg\_resources} timebomb in
+section~\textsection 4.2.
+
+\section{Recommended migration}
+
+The skcuda surface area in \texttt{cuvarbase} is small enough --- one
+\texttt{Plan} object, one \texttt{ifft} call --- that direct replacement is
+straightforward. Three viable replacements, in rough order of fit:
+
+\begin{description}[leftmargin=1.6em,style=nextline]
+    \item[\texttt{cuda-python} (\texttt{nvidia-cuda-python})]
+    NVIDIA's official low-level Python bindings. Includes cuFFT bindings via
+    \texttt{cuda.bindings.cufft}. Supported, versioned with the CUDA toolkit,
+    and the canonical answer going forward. Requires writing a thin wrapper
+    (plan-handle creation, exec call, destroy) but the control flow is a
+    direct map from the existing two call sites.
+
+    \item[\texttt{nvmath-python}]
+    NVIDIA's high-level math-libraries package (cuFFT, cuBLAS, cuSPARSE,
+    cuSOLVER) layered on top of \texttt{cuda-python}. Closer ergonomically to
+    \texttt{skcuda.fft}, but newer and dependency-heavy.
+
+    \item[\texttt{cupy}]
+    \texttt{cupy.fft} wraps cuFFT and integrates with PyCUDA arrays via the
+    \texttt{\_\_cuda\_array\_interface\_\_} protocol. Pulls in CuPy as a
+    dependency, which is a sizeable addition for what amounts to two function
+    calls.
+\end{description}
+
+\subsection*{Estimated effort}
+\begin{itemize}[leftmargin=1.6em]
+    \item \texttt{src/cuvarbase/cunfft.py}: replace the \texttt{Plan}
+    construction in \texttt{NFFTMemory.allocate\_grid} and the
+    \texttt{cufft.ifft} call in \texttt{nfft\_adjoint\_async}.
+    \item \texttt{tests/test\_nfft.py}: replace the equivalent two lines used
+    in the CPU-vs-GPU comparison fixture.
+    \item Update \texttt{pyproject.toml}: drop \texttt{scikit-cuda}, drop the
+    \texttt{numpy<1.25} cap, add the chosen replacement.
+    \item Update CLAUDE.md and \texttt{INSTALL.rst}: scikit-cuda is no longer
+    a runtime dependency.
+\end{itemize}
+
+\noindent
+A reasonable bound: a single afternoon of focused work plus a re-run of the
+GPU test suite. The migration is a strict removal of risk; nothing is lost.
+
+\section{Action items}
+
+\begin{enumerate}[leftmargin=1.6em]
+    \item \textbf{Short term:} keep the \texttt{numpy<1.25} cap from PR \#2 in
+    place. Document it (this note).
+    \item \textbf{Medium term:} prototype the \texttt{cuda-python} cuFFT path
+    in a feature branch, validated against \texttt{tests/test\_nfft.py}.
+    \item \textbf{Long term:} delete \texttt{scikit-cuda} from
+    \texttt{dependencies}, lift the NumPy cap, restore Python 3.12 to the
+    supported matrix, and remove this note.
+\end{enumerate}
+
+\end{document}
