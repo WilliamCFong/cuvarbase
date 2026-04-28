@@ -31,7 +31,7 @@ dependencies = [
     "numpy>=1.6",
     "scipy",
     "pycuda>=2017.1.1,!=2024.1.2",
-    "scikit-cuda",
+    "nvmath-python",
 ]
 
 [project.optional-dependencies]

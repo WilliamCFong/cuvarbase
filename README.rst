@@ -35,8 +35,8 @@ Dependencies
 ------------
 
 - `PyCUDA <https://mathema.tician.de/software/pycuda/>`_ **<-essential**
-- `scikit cuda <https://scikit-cuda.readthedocs.io/en/latest/>`_ **<-also essential**
-	- used for access to the CUDA FFT runtime library
+- `nvmath-python <https://docs.nvidia.com/cuda/nvmath-python/>`_ **<-also essential**
+	- NVIDIA's official Python bindings for the CUDA math libraries; we use ``nvmath.bindings.cufft`` for the FFT inside the adjoint NFFT
 - `matplotlib <https://matplotlib.org/>`_ (for plotting utilities)
 - `nfft <https://github.com/jakevdp/nfft>`_ (for unit testing)
 - `astropy <http://www.astropy.org/>`_ (for unit testing)

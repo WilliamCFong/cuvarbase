@@ -14,7 +14,7 @@ import pycuda.gpuarray as gpuarray
 from pycuda.compiler import SourceModule
 # import pycuda.autoinit
 
-import skcuda.fft as cufft
+from . import _cufft as cufft
 
 from .core import GPUAsyncProcess
 from .utils import find_kernel, _module_reader
