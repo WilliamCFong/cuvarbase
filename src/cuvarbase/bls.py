@@ -18,7 +18,7 @@ import pycuda.gpuarray as gpuarray
 from pycuda.compiler import SourceModule
 
 from .core import GPUAsyncProcess
-from .utils import find_kernel, _module_reader
+from .utils import find_kernel, _module_reader, default_nvcc_options
 
 import resource
 import numpy as np
@@ -210,7 +210,7 @@ def compile_bls(block_size=_default_block_size,
                                 cpp_defs=cppd)
 
     # compile kernel
-    module = SourceModule(kernel_txt, options=['--use_fast_math'])
+    module = SourceModule(kernel_txt, options=default_nvcc_options())
 
     functions = {name: module.get_function(name) for name in function_names}
 

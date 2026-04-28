@@ -2,9 +2,26 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
 from copy import deepcopy
 import numpy as np
 from importlib.resources import files
+
+
+def default_nvcc_options(use_fast_math=True):
+    """Default nvcc options for ``SourceModule`` kernel compilation.
+
+    Includes ``-allow-unsupported-compiler`` so nvcc skips its host-compiler
+    version check, which fails on systems where the installed CUDA toolkit
+    was built against an older gcc than the host gcc (e.g. CUDA 11 with gcc
+    >= 12). Extra flags can be appended via the
+    ``CUVARBASE_NVCC_EXTRA_FLAGS`` environment variable (whitespace-split).
+    """
+    opts = ['-allow-unsupported-compiler']
+    if use_fast_math:
+        opts.append('--use_fast_math')
+    opts.extend(os.environ.get('CUVARBASE_NVCC_EXTRA_FLAGS', '').split())
+    return opts
 
 
 def weights(err):

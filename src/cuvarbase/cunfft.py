@@ -17,7 +17,7 @@ from pycuda.compiler import SourceModule
 from . import _cufft as cufft
 
 from .core import GPUAsyncProcess
-from .utils import find_kernel, _module_reader
+from .utils import find_kernel, _module_reader, default_nvcc_options
 
 
 class NFFTMemory(object):
@@ -355,9 +355,9 @@ class NFFTAsyncProcess(GPUAsyncProcess):
         self.block_size = kwargs.get('block_size', 256)
         self.use_double = kwargs.get('use_double', False)
         self.m_tol = kwargs.get('tol', 1E-8)
-        self.module_options = []
-        if kwargs.get('use_fast_math', True):
-            self.module_options.append('--use_fast_math')
+        self.module_options = default_nvcc_options(
+            use_fast_math=kwargs.get('use_fast_math', True)
+        )
 
         self.real_type = np.float64 if self.use_double \
             else np.float32

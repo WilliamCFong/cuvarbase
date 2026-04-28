@@ -17,7 +17,7 @@ import pycuda.autoprimaryctx
 from pycuda.compiler import SourceModule
 
 from .core import GPUAsyncProcess
-from .utils import _module_reader, find_kernel
+from .utils import _module_reader, find_kernel, default_nvcc_options
 from .utils import autofrequency as utils_autofreq
 
 import resource
@@ -513,7 +513,7 @@ class ConditionalEntropyAsyncProcess(GPUAsyncProcess):
                                     cpp_defs=cpp_defs)
 
         # compile kernel
-        self.module = SourceModule(kernel_txt, options=['--use_fast_math'])
+        self.module = SourceModule(kernel_txt, options=default_nvcc_options())
 
         self.dtypes = dict(
             constdpdm_ce=[np.intp, np.int32, np.intp, np.intp],
