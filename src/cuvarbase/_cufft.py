@@ -48,7 +48,14 @@ class Plan:
         self._type = int(cufft_type)
         self._handle = _cufft.create()
         try:
-            _cufft.plan1d(self._handle, int(n), self._type, int(batch))
+            # Use create()+make_plan1d(handle, ...) rather than plan1d(...).
+            # nvmath's `plan1d` mirrors cufftPlan1d, whose first argument is an
+            # *out-pointer* to a handle (cufftHandle*); calling it with the
+            # already-allocated integer handle from create() segfaults.
+            # make_plan1d wraps cufftMakePlan1d which takes the handle by
+            # value and returns the work-area size (we ignore it; cuFFT's
+            # auto-allocation default is fine).
+            _cufft.make_plan1d(self._handle, int(n), self._type, int(batch))
             if stream is not None:
                 _cufft.set_stream(self._handle, int(stream.handle))
         except Exception:
