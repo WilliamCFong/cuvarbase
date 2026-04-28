@@ -19,7 +19,7 @@ from nfft import nfft_adjoint as nfft_adjoint_cpu
 from nfft.utils import nfft_matrix
 from nfft.kernels import KERNELS
 
-from ..cunfft import NFFTAsyncProcess
+from cuvarbase.cunfft import NFFTAsyncProcess
 
 nfft_sigma = 5
 nfft_m = 8

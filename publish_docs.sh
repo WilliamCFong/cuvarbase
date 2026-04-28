@@ -11,7 +11,7 @@
 set -x
 
 DOC_BRANCH=master
-NEEDED="cuvarbase docs/Makefile docs/source README.rst INSTALL.rst CHANGELOG.rst"
+NEEDED="src docs/Makefile docs/source README.rst INSTALL.rst CHANGELOG.rst"
 
 # We need to grab hidden files with mv...
 shopt -s dotglob nullglob

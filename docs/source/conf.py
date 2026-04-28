@@ -23,7 +23,7 @@ import io
 import re
 
 cuda_dir = "/Developer/NVIDIA/CUDA-8.0/lib/"
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('../../src'))
 sys.path.insert(0, cuda_dir)
 
 # Set DYLD and LD library paths
@@ -61,7 +61,7 @@ def version(path):
     raise RuntimeError("Unable to find version string.")
 
 
-VERSION = version('../../cuvarbase/__init__.py')
+VERSION = version('../../src/cuvarbase/__init__.py')
 
 
 # -- General configuration ------------------------------------------------

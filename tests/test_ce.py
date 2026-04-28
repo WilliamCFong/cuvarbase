@@ -9,7 +9,7 @@ import pytest
 from pycuda.tools import mark_cuda_test
 import numpy as np
 from numpy.testing import assert_allclose
-from ..ce import ConditionalEntropyAsyncProcess
+from cuvarbase.ce import ConditionalEntropyAsyncProcess
 lsrtol = 1E-2
 lsatol = 1E-5
 seed = 100
