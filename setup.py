@@ -29,15 +29,15 @@ def version(path):
     raise RuntimeError("Unable to find version string.")
 
 
-VERSION = version('cuvarbase/__init__.py')
+VERSION = version('src/cuvarbase/__init__.py')
 
 setup(name='cuvarbase',
       version=VERSION,
       description="Period-finding and variability on the GPU",
       author='John Hoffman',
       author_email='johnh2o2@gmail.com',
-      packages=['cuvarbase',
-                'cuvarbase.tests'],
+      package_dir={'': 'src'},
+      packages=['cuvarbase'],
       package_data={'cuvarbase': ['kernels/*cu']},
       url='https://github.com/johnh2o2/cuvarbase',
       setup_requires=['pytest-runner', 'future'],

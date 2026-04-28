@@ -1,13 +1,6 @@
 cuvarbase package
 =================
 
-Subpackages
------------
-
-.. toctree::
-
-    cuvarbase.tests
-
 Submodules
 ----------
 
