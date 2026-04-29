@@ -17,6 +17,7 @@ from pycuda.compiler import SourceModule
 # import pycuda.autoinit
 
 from .core import GPUAsyncProcess
+from .gpu import current_gpu
 from .utils import weights, find_kernel, _module_reader, normalize_light_curves
 from .utils import autofrequency as utils_autofreq
 from .cunfft import NFFTAsyncProcess, nfft_adjoint_async, NFFTMemory
@@ -125,6 +126,23 @@ class LombScargleMemory(object):
         self.t = kwargs.get('t', None)
         self.yw = kwargs.get('yw', None)
         self.w = kwargs.get('w', None)
+
+        current_gpu().track(self)
+
+    def close(self):
+        """Drop GPU resources owned by this memory instance."""
+        self.t_g = None
+        self.yw_g = None
+        self.w_g = None
+        self.lsp_g = None
+        self.reg_g = None
+        self.lsp_c = None
+        if getattr(self, 'nfft_mem_yw', None) is not None:
+            self.nfft_mem_yw.close()
+            self.nfft_mem_yw = None
+        if getattr(self, 'nfft_mem_w', None) is not None:
+            self.nfft_mem_w.close()
+            self.nfft_mem_w = None
 
     def allocate_data(self, **kwargs):
         """ Allocates memory for lightcurve """

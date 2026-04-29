@@ -9,7 +9,6 @@ from itertools import product
 import pytest
 import numpy as np
 from numpy.testing import assert_allclose
-from pycuda.tools import mark_cuda_test
 from cuvarbase.bls import eebls_gpu, eebls_transit_gpu, \
                   q_transit, compile_bls, hone_solution,\
                   single_bls, eebls_gpu_custom, eebls_gpu_fast

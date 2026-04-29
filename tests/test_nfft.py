@@ -10,7 +10,6 @@ import numpy as np
 from numpy.testing import assert_allclose
 from scipy import fftpack
 
-from pycuda.tools import mark_cuda_test
 from pycuda import gpuarray
 
 from cuvarbase import _cufft as cufft

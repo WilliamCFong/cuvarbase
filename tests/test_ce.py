@@ -6,7 +6,6 @@ from builtins import zip
 from builtins import range
 from builtins import object
 import pytest
-from pycuda.tools import mark_cuda_test
 import numpy as np
 from numpy.testing import assert_allclose
 from cuvarbase.ce import ConditionalEntropyAsyncProcess

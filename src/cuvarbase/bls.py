@@ -11,13 +11,12 @@ from builtins import zip
 from builtins import range
 import sys
 
-#import pycuda.autoinit
-import pycuda.autoprimaryctx
 import pycuda.driver as cuda
 import pycuda.gpuarray as gpuarray
 from pycuda.compiler import SourceModule
 
 from .core import GPUAsyncProcess
+from .gpu import current_gpu
 from .utils import find_kernel, _module_reader, default_nvcc_options
 
 import resource
@@ -252,6 +251,18 @@ class BLSMemory(object):
 
         self.allocate_pinned_arrays(nfreqs=max_nfreqs, ndata=max_ndata)
 
+        current_gpu().track(self)
+
+    def close(self):
+        """Drop GPU resources owned by this memory instance."""
+        self.t_g = None
+        self.yw_g = None
+        self.w_g = None
+        self.freqs_g = None
+        self.nbins0_g = None
+        self.nbinsf_g = None
+        self.bls_g = None
+
     def allocate_pinned_arrays(self, nfreqs=None, ndata=None):
         if nfreqs is None:
             nfreqs = int(self.max_nfreqs)
@@ -469,9 +480,9 @@ def eebls_gpu_fast(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
     func = functions[fname]
 
     if shmem_lim is None:
-        dev = pycuda.autoprimaryctx.device
+        dev = current_gpu().device
         att = cuda.device_attribute.MAX_SHARED_MEMORY_PER_BLOCK
-        shmem_lim = pycuda.autoprimaryctx.device.get_attribute(att)
+        shmem_lim = dev.get_attribute(att)
 
     if memory is None:
         memory = BLSMemory.fromdata(t, y, dy, qmin=qmin, qmax=qmax,
@@ -588,6 +599,8 @@ def eebls_gpu_custom(t, y, dy, freqs, q_values, phi_values,
         Best (q, phi) solution at each frequency
 
     """
+
+    current_gpu()
 
     functions = functions if functions is not None \
         else compile_bls(**kwargs)
@@ -809,6 +822,8 @@ def eebls_gpu(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
         if isinstance(arr, float) or isinstance(arr, int):
             return arr
         return ext(arr[slice(imin, imax)])
+
+    current_gpu()
 
     functions = functions if functions is not None \
         else compile_bls(**kwargs)

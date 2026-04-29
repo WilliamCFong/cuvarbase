@@ -14,5 +14,4 @@ if "-allow-unsupported-compiler" not in _nvcc_append:
     ).strip()
 del _nvcc_append, _os
 
-# import pycuda.autoinit causes problems when running e.g. FFT
-import pycuda.autoprimaryctx  # noqa: E402, F401
+from .gpu import initialize_gpu, current_gpu  # noqa: E402, F401

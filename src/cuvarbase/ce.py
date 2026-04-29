@@ -12,11 +12,10 @@ import numpy as np
 
 import pycuda.driver as cuda
 import pycuda.gpuarray as gpuarray
-#import pycuda.autoinit
-import pycuda.autoprimaryctx
 from pycuda.compiler import SourceModule
 
 from .core import GPUAsyncProcess
+from .gpu import current_gpu
 from .utils import _module_reader, find_kernel, default_nvcc_options
 from .utils import autofrequency as utils_autofreq
 
@@ -75,6 +74,20 @@ class ConditionalEntropyMemory(object):
         self.mag_bin_fracs_g = None
 
         self.ytype = np.uint32 if not self.weighted else self.real_type
+
+        current_gpu().track(self)
+
+    def close(self):
+        """Drop GPU resources owned by this memory instance."""
+        self.t_g = None
+        self.y_g = None
+        self.dy_g = None
+        self.bins_g = None
+        self.ce_g = None
+        self.ce_c = None
+        self.mag_bwf_g = None
+        self.freqs_g = None
+        self.mag_bin_fracs_g = None
 
     def allocate_buffered_data_arrays(self, **kwargs):
         n0 = kwargs.get('n0', self.n0)
@@ -361,9 +374,9 @@ def conditional_entropy_fast(memory, functions, block_size=256,
         ce_logp, ce_std, ce_wt = functions
 
     if shmem_lim is None:
-        dev = pycuda.autoprimaryctx.device
+        dev = current_gpu().device
         att = cuda.device_attribute.MAX_SHARED_MEMORY_PER_BLOCK
-        shmem_lim = pycuda.autoprimaryctx.device.get_attribute(att)
+        shmem_lim = dev.get_attribute(att)
 
     if transfer_to_device:
         memory.transfer_data_to_gpu()
