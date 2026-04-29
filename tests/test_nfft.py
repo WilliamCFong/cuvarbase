@@ -13,7 +13,7 @@ from scipy import fftpack
 from pycuda.tools import mark_cuda_test
 from pycuda import gpuarray
 
-import skcuda.fft as cufft
+from cuvarbase import _cufft as cufft
 
 from nfft import nfft_adjoint as nfft_adjoint_cpu
 from nfft.utils import nfft_matrix

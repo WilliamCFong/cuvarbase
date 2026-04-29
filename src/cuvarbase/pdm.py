@@ -15,7 +15,7 @@ from pycuda.compiler import SourceModule
 # import pycuda.autoinit
 
 from .core import GPUAsyncProcess
-from .utils import weights, find_kernel, dphase, normalize_light_curves
+from .utils import weights, find_kernel, dphase, normalize_light_curves, default_nvcc_options
 
 
 def var_tophat(t, y, w, freq, dphi):
@@ -168,7 +168,7 @@ class PDMAsyncProcess(GPUAsyncProcess):
         pdm2_txt = pdm2_txt.replace('//INSERT_NBINS_HERE',
                                     '#define NBINS %d' % (nbins))
 
-        self.module = SourceModule(pdm2_txt, options=['--use_fast_math'])
+        self.module = SourceModule(pdm2_txt, options=default_nvcc_options())
 
         self.dtypes = [np.intp, np.intp, np.intp, np.intp, np.intp,
                        np.int32, np.int32, np.float32, np.float32]
