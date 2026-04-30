@@ -460,6 +460,12 @@ def eebls_gpu_fast(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
         Transfer BLS back to CPU.
     transfer_to_device: bool, optional (default: True)
         Transfer data to GPU
+    device: int, optional (default: None)
+        GPU ordinal to run on. If ``None`` and a ``cuvarbase.initialize_gpu``
+        block is already active, the call reuses that context. If ``None`` and
+        no context is active, opens one on ``int(os.environ['CUDA_DEVICE'])``
+        (defaulting to 0). If an integer is given, always opens a fresh nested
+        context on that device.
     **kwargs:
         passed to `compile_bls`
 
@@ -587,6 +593,12 @@ def eebls_gpu_custom(t, y, dy, freqs, q_values, phi_values,
         free memory given by ``pycuda.driver.mem_get_info()``
     functions: tuple of CUDA functions
         Dictionary of prepared functions from :func:`compile_bls`.
+    device: int, optional (default: None)
+        GPU ordinal to run on. If ``None`` and a ``cuvarbase.initialize_gpu``
+        block is already active, the call reuses that context. If ``None`` and
+        no context is active, opens one on ``int(os.environ['CUDA_DEVICE'])``
+        (defaulting to 0). If an integer is given, always opens a fresh nested
+        context on that device.
     **kwargs:
         passed to :func:`compile_bls`
 
@@ -806,6 +818,12 @@ def eebls_gpu(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
         as returned by ``pycuda.driver.mem_get_info`` if this is ``None``.
     functions: tuple of CUDA functions
         returned by ``compile_bls``
+    device: int, optional (default: None)
+        GPU ordinal to run on. If ``None`` and a ``cuvarbase.initialize_gpu``
+        block is already active, the call reuses that context. If ``None`` and
+        no context is active, opens one on ``int(os.environ['CUDA_DEVICE'])``
+        (defaulting to 0). If an integer is given, always opens a fresh nested
+        context on that device.
 
     Returns
     -------
@@ -1123,6 +1141,12 @@ def eebls_transit_gpu(t, y, dy, fmax_frac=1.0, fmin_frac=1.0,
 
     ignore_negative_delta_sols: bool
         Whether or not to ignore inverted dips
+    device: int, optional (default: None)
+        GPU ordinal to run on. If ``None`` and a ``cuvarbase.initialize_gpu``
+        block is already active, the call reuses that context. If ``None`` and
+        no context is active, opens one on ``int(os.environ['CUDA_DEVICE'])``
+        (defaulting to 0). If an integer is given, always opens a fresh nested
+        context on that device.
     **kwargs:
         passed to `eebls_gpu`, `compile_bls`, `fmax_transit`,
         `fmin_transit`, and `transit_autofreq`

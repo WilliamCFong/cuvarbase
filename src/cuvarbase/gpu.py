@@ -31,6 +31,11 @@ Notes
 - ``SourceModule`` has no explicit free; ``close()`` drops the Python
   reference so its CUmodule unloads when the GC runs. Holding external
   references to prepared functions past the ``with`` block is unsafe.
+- The same applies to gpuarrays: any ``GPUArray`` (or ``Memory`` /
+  ``AsyncProcess`` instance owning one) referenced after ``__exit__``
+  is a footgun. ``close()`` nulls the buffers tracked by the runtime,
+  but external references still pointing at freed device memory will
+  read garbage on access.
 - Multi-device works via nested ``initialize_gpu`` blocks, but streams /
   modules created in an outer block must not be invoked while a nested
   block on a different device is active.
