@@ -1,4 +1,4 @@
-__version__ = "0.3.0"
+__version__ = "0.4.0a1"
 
 # Ensure -allow-unsupported-compiler reaches every nvcc invocation, including
 # PyCUDA's own elementwise / reduction kernels (gpuarray.zeros().fill() etc.)
