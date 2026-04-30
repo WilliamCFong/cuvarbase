@@ -1,11 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from builtins import zip
-from builtins import map
-from builtins import range
-from builtins import object
 import resource
 
 import numpy as np
@@ -17,6 +9,7 @@ from pycuda.compiler import SourceModule
 # import pycuda.autoinit
 
 from .core import GPUAsyncProcess
+from .gpu import current_gpu
 from .utils import weights, find_kernel, _module_reader, normalize_light_curves
 from .utils import autofrequency as utils_autofreq
 from .cunfft import NFFTAsyncProcess, nfft_adjoint_async, NFFTMemory
@@ -33,7 +26,7 @@ def check_k0(freqs, k0=None, rtol=1E-2, atol=1E-7):
     assert(abs(f0 - freqs[0]) < rtol * df + atol)
 
 
-class LombScargleMemory(object):
+class LombScargleMemory:
     """
     Container class for allocating memory and transferring
     data between the GPU and CPU for Lomb-Scargle computations
@@ -125,6 +118,23 @@ class LombScargleMemory(object):
         self.t = kwargs.get('t', None)
         self.yw = kwargs.get('yw', None)
         self.w = kwargs.get('w', None)
+
+        current_gpu().track(self)
+
+    def close(self):
+        """Drop GPU resources owned by this memory instance."""
+        self.t_g = None
+        self.yw_g = None
+        self.w_g = None
+        self.lsp_g = None
+        self.reg_g = None
+        self.lsp_c = None
+        if getattr(self, 'nfft_mem_yw', None) is not None:
+            self.nfft_mem_yw.close()
+            self.nfft_mem_yw = None
+        if getattr(self, 'nfft_mem_w', None) is not None:
+            self.nfft_mem_w.close()
+            self.nfft_mem_w = None
 
     def allocate_data(self, **kwargs):
         """ Allocates memory for lightcurve """
@@ -711,7 +721,7 @@ class LombScargleAsyncProcess(GPUAsyncProcess):
 
     """
     def __init__(self, *args, **kwargs):
-        super(LombScargleAsyncProcess, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.nfft_proc = NFFTAsyncProcess(*args, **kwargs)
         self._cpp_defs = self.nfft_proc._cpp_defs

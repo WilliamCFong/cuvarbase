@@ -45,15 +45,46 @@ Dependencies
 Using multiple GPUs
 -------------------
 
-If you have more than one GPU, you can choose which one to
-use in a given script by setting the ``CUDA_DEVICE`` environment
-variable:
+GPU initialization is explicit. Wrap any code that uses
+``cuvarbase`` in an ``initialize_gpu`` context manager:
 
-.. code:: sh
+.. code:: python
 
-    CUDA_DEVICE=1 python script.py
+    import cuvarbase
+    from cuvarbase.lombscargle import LombScargleAsyncProcess
 
-If anyone is interested in implementing multi-device load-balancing
-solution, they are encouraged to do so! At some point this may
-become important, but for the time being manually splitting up the
-jobs to different GPU's will have to suffice.
+    with cuvarbase.initialize_gpu(0) as gpu:
+        proc = LombScargleAsyncProcess()
+        results = proc.run([(t, y, dy)])
+
+On exit, cuvarbase synchronizes the active context and releases
+streams, cuFFT plans, and compiled modules owned by AsyncProcess /
+Memory instances created in the block.
+
+If ``initialize_gpu()`` is called with no argument, it reads
+``int(os.environ['CUDA_DEVICE'])`` (defaulting to 0) so existing
+``CUDA_DEVICE=1 python script.py`` invocations keep working as long
+as the script is wrapped in the context manager.
+
+Instantiating a GPU class outside an ``initialize_gpu`` block raises
+``RuntimeError`` -- there is no implicit fallback.
+
+The standalone BLS entry points (``eebls_gpu``, ``eebls_gpu_fast``,
+``eebls_gpu_custom``, ``eebls_transit_gpu``) accept an optional
+``device=`` keyword and open the context themselves, so a one-shot
+call can skip the ``with`` block:
+
+.. code:: python
+
+    from cuvarbase.bls import eebls_transit_gpu
+    freqs, powers, sols = eebls_transit_gpu(t, y, dy, device=0)
+
+If ``device`` is omitted and a context is already active, the call
+reuses it. Otherwise it opens one on ``int(os.environ['CUDA_DEVICE'])``
+(defaulting to 0).
+
+If anyone is interested in implementing a multi-device load-balancing
+solution, they are encouraged to do so. Nested ``initialize_gpu``
+blocks on different devices work, but state created in an outer block
+must not be invoked while a nested block on a different device is
+active.

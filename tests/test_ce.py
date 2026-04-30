@@ -1,12 +1,4 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from builtins import zip
-from builtins import range
-from builtins import object
 import pytest
-from pycuda.tools import mark_cuda_test
 import numpy as np
 from numpy.testing import assert_allclose
 from cuvarbase.ce import ConditionalEntropyAsyncProcess
@@ -39,7 +31,7 @@ def assert_similar(pdg0, pdg, top=5):
     assert(all(diff < lsrtol * 0.5 * (p + p0) + lsatol))
 
 
-class TestCE(object):
+class TestCE:
     plot = False
 
     @pytest.mark.parametrize('ndatas', [1, 5, 10])

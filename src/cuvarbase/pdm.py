@@ -1,10 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from builtins import zip
-from builtins import range
-
 import numpy as np
 import resource
 import warnings
@@ -161,7 +154,7 @@ def pdm_async(stream, data_cpu, data_gpu, pow_cpu, function,
 class PDMAsyncProcess(GPUAsyncProcess):
 
     def __init__(self, *args, **kwargs):
-        super(PDMAsyncProcess, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _compile_and_prepare_functions(self, nbins=10):
         pdm2_txt = open(find_kernel('pdm'), 'r').read()

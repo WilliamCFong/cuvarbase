@@ -1,16 +1,8 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from builtins import zip
-from builtins import range
-from builtins import object
 import pytest
 import numpy as np
 from numpy.testing import assert_allclose
 from scipy import fftpack
 
-from pycuda.tools import mark_cuda_test
 from pycuda import gpuarray
 
 from cuvarbase import _cufft as cufft
@@ -110,7 +102,7 @@ def get_cpu_grid(t, y, nf, sigma=nfft_sigma, m=nfft_m):
 
 
 #@mark_cuda_test
-class TestNFFT(object):
+class TestNFFT:
 
     def test_fast_gridding_with_jvdp_nfft(self):
         t, tsc, y, err = data()

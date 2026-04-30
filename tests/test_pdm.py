@@ -1,13 +1,8 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 from cuvarbase.utils import weights
 from cuvarbase.pdm import pdm2_cpu, binless_pdm_cpu, PDMAsyncProcess
-from pycuda.tools import mark_cuda_test
 
 pytest.nbins = 10
 pytest.seed = 100

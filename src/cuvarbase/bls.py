@@ -5,19 +5,15 @@ and variants.
 .. [K2002] `Kovacs et al. 2002 <http://adsabs.harvard.edu/abs/2002A%26A...391..369K>`_
 
 """
-from __future__ import print_function, division
 
-from builtins import zip
-from builtins import range
 import sys
 
-#import pycuda.autoinit
-import pycuda.autoprimaryctx
 import pycuda.driver as cuda
 import pycuda.gpuarray as gpuarray
 from pycuda.compiler import SourceModule
 
 from .core import GPUAsyncProcess
+from .gpu import current_gpu, with_active_gpu
 from .utils import find_kernel, _module_reader, default_nvcc_options
 
 import resource
@@ -223,7 +219,7 @@ def compile_bls(block_size=_default_block_size,
     return functions
 
 
-class BLSMemory(object):
+class BLSMemory:
     def __init__(self, max_ndata, max_nfreqs, stream=None, **kwargs):
         self.max_ndata = max_ndata
         self.max_nfreqs = max_nfreqs
@@ -251,6 +247,18 @@ class BLSMemory(object):
         self.stream = stream
 
         self.allocate_pinned_arrays(nfreqs=max_nfreqs, ndata=max_ndata)
+
+        current_gpu().track(self)
+
+    def close(self):
+        """Drop GPU resources owned by this memory instance."""
+        self.t_g = None
+        self.yw_g = None
+        self.w_g = None
+        self.freqs_g = None
+        self.nbins0_g = None
+        self.nbinsf_g = None
+        self.bls_g = None
 
     def allocate_pinned_arrays(self, nfreqs=None, ndata=None):
         if nfreqs is None:
@@ -368,6 +376,7 @@ class BLSMemory(object):
                          **kwargs)
 
 
+@with_active_gpu
 def eebls_gpu_fast(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
                    ignore_negative_delta_sols=False,
                    functions=None, stream=None, dlogq=0.3,
@@ -451,6 +460,12 @@ def eebls_gpu_fast(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
         Transfer BLS back to CPU.
     transfer_to_device: bool, optional (default: True)
         Transfer data to GPU
+    device: int, optional (default: None)
+        GPU ordinal to run on. If ``None`` and a ``cuvarbase.initialize_gpu``
+        block is already active, the call reuses that context. If ``None`` and
+        no context is active, opens one on ``int(os.environ['CUDA_DEVICE'])``
+        (defaulting to 0). If an integer is given, always opens a fresh nested
+        context on that device.
     **kwargs:
         passed to `compile_bls`
 
@@ -469,9 +484,9 @@ def eebls_gpu_fast(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
     func = functions[fname]
 
     if shmem_lim is None:
-        dev = pycuda.autoprimaryctx.device
+        dev = current_gpu().device
         att = cuda.device_attribute.MAX_SHARED_MEMORY_PER_BLOCK
-        shmem_lim = pycuda.autoprimaryctx.device.get_attribute(att)
+        shmem_lim = dev.get_attribute(att)
 
     if memory is None:
         memory = BLSMemory.fromdata(t, y, dy, qmin=qmin, qmax=qmax,
@@ -541,6 +556,7 @@ def eebls_gpu_fast(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
     return memory.bls
 
 
+@with_active_gpu
 def eebls_gpu_custom(t, y, dy, freqs, q_values, phi_values,
                      ignore_negative_delta_sols=False,
                      freq_batch_size=None, nstreams=5, max_memory=None,
@@ -577,6 +593,12 @@ def eebls_gpu_custom(t, y, dy, freqs, q_values, phi_values,
         free memory given by ``pycuda.driver.mem_get_info()``
     functions: tuple of CUDA functions
         Dictionary of prepared functions from :func:`compile_bls`.
+    device: int, optional (default: None)
+        GPU ordinal to run on. If ``None`` and a ``cuvarbase.initialize_gpu``
+        block is already active, the call reuses that context. If ``None`` and
+        no context is active, opens one on ``int(os.environ['CUDA_DEVICE'])``
+        (defaulting to 0). If an integer is given, always opens a fresh nested
+        context on that device.
     **kwargs:
         passed to :func:`compile_bls`
 
@@ -756,6 +778,7 @@ def count_tot_nbins(nbins0, nbinsf, dlogq):
     return ntot
 
 
+@with_active_gpu
 def eebls_gpu(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
               ignore_negative_delta_sols=False,
               nstreams=5, noverlap=3, dlogq=0.2, max_memory=None,
@@ -795,6 +818,12 @@ def eebls_gpu(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
         as returned by ``pycuda.driver.mem_get_info`` if this is ``None``.
     functions: tuple of CUDA functions
         returned by ``compile_bls``
+    device: int, optional (default: None)
+        GPU ordinal to run on. If ``None`` and a ``cuvarbase.initialize_gpu``
+        block is already active, the call reuses that context. If ``None`` and
+        no context is active, opens one on ``int(os.environ['CUDA_DEVICE'])``
+        (defaulting to 0). If an integer is given, always opens a fresh nested
+        context on that device.
 
     Returns
     -------
@@ -1067,6 +1096,7 @@ def hone_solution(t, y, dy, f0, df0, q0, dlogq0, phi0, stop=1e-5,
     return f, pn, i, (q, phi)
 
 
+@with_active_gpu
 def eebls_transit_gpu(t, y, dy, fmax_frac=1.0, fmin_frac=1.0,
                       qmin_fac=0.5, qmax_fac=2.0, fmin=None,
                       fmax=None, freqs=None, qvals=None, use_fast=False,
@@ -1111,6 +1141,12 @@ def eebls_transit_gpu(t, y, dy, fmax_frac=1.0, fmin_frac=1.0,
 
     ignore_negative_delta_sols: bool
         Whether or not to ignore inverted dips
+    device: int, optional (default: None)
+        GPU ordinal to run on. If ``None`` and a ``cuvarbase.initialize_gpu``
+        block is already active, the call reuses that context. If ``None`` and
+        no context is active, opens one on ``int(os.environ['CUDA_DEVICE'])``
+        (defaulting to 0). If an integer is given, always opens a fresh nested
+        context on that device.
     **kwargs:
         passed to `eebls_gpu`, `compile_bls`, `fmax_transit`,
         `fmin_transit`, and `transit_autofreq`

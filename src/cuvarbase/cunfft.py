@@ -1,9 +1,5 @@
 #!/usr/bin/env python
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-from builtins import object
 
 import sys
 import resource
@@ -17,10 +13,11 @@ from pycuda.compiler import SourceModule
 from . import _cufft as cufft
 
 from .core import GPUAsyncProcess
+from .gpu import current_gpu
 from .utils import find_kernel, _module_reader, default_nvcc_options
 
 
-class NFFTMemory(object):
+class NFFTMemory:
     def __init__(self, sigma, stream, m, use_double=False,
                  precomp_psi=True, **kwargs):
 
@@ -55,6 +52,19 @@ class NFFTMemory(object):
 
         D = (2 * self.sigma - 1) * np.pi
         self.b = float(2 * self.sigma * self.m) / D
+
+        current_gpu().track(self)
+
+    def close(self):
+        """Drop GPU resources owned by this memory instance."""
+        self.t_g = None
+        self.y_g = None
+        self.ghat_g = None
+        self.ghat_c = None
+        self.q1 = None
+        self.q2 = None
+        self.q3 = None
+        self.cu_plan = None
 
     def allocate_data(self, **kwargs):
         self.n0 = kwargs.get('n0', self.n0)
@@ -347,7 +357,7 @@ class NFFTAsyncProcess(GPUAsyncProcess):
     """
 
     def __init__(self, *args, **kwargs):
-        super(NFFTAsyncProcess, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.sigma = kwargs.get('sigma', 4)
         self.m = kwargs.get('m', 8)
