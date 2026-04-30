@@ -1,10 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from builtins import zip
-from builtins import range
-from builtins import object
 from itertools import product 
 import pytest
 import numpy as np
@@ -143,7 +136,7 @@ def manual_binning(t, y, dy, freqs, nbins0, nbinsf, dlogq,
     return yw_bins, w_bins
 
 
-class TestBLS(object):
+class TestBLS:
     seed = 100
     rand = np.random.RandomState(seed)
     plot = False
@@ -152,7 +145,7 @@ class TestBLS(object):
 
     # TODO: tests that have specific bls values; test single_bls function returns
     #       what you expect it to for several example problems
-    class SolutionParams(object):
+    class SolutionParams:
         def __init__(self, freq, phi0, q, baseline, ybar, snr, negative_delta):
             self.freq = freq
             self.phi0 = phi0

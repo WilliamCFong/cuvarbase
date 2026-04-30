@@ -1,9 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from builtins import range
-from builtins import object
 import numpy as np
 from .utils import gaussian_window, tophat_window, get_autofreqs
 from .gpu import current_gpu
@@ -11,7 +5,7 @@ import pycuda.driver as cuda
 from pycuda.compiler import SourceModule
 
 
-class GPUAsyncProcess(object):
+class GPUAsyncProcess:
     def __init__(self, *args, **kwargs):
         self.reader = kwargs.get('reader', None)
         self.nstreams = kwargs.get('nstreams', None)

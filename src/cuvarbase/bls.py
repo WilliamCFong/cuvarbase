@@ -5,10 +5,7 @@ and variants.
 .. [K2002] `Kovacs et al. 2002 <http://adsabs.harvard.edu/abs/2002A%26A...391..369K>`_
 
 """
-from __future__ import print_function, division
 
-from builtins import zip
-from builtins import range
 import sys
 
 import pycuda.driver as cuda
@@ -222,7 +219,7 @@ def compile_bls(block_size=_default_block_size,
     return functions
 
 
-class BLSMemory(object):
+class BLSMemory:
     def __init__(self, max_ndata, max_nfreqs, stream=None, **kwargs):
         self.max_ndata = max_ndata
         self.max_nfreqs = max_nfreqs

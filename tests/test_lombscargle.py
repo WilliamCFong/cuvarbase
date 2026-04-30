@@ -1,10 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from builtins import zip
-from builtins import range
-from builtins import object
 import numpy as np
 import pytest
 
@@ -49,7 +42,7 @@ def assert_similar(pdg0, pdg, top=5):
     assert(all(diff < lsrtol * 0.5 * (p + p0) + lsatol))
 
 
-class TestLombScargle(object):
+class TestLombScargle:
     def test_against_astropy_double(self):
         t, y, err = data()
         ls_proc = LombScargleAsyncProcess(use_double=True,

@@ -1,11 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from builtins import zip
-from builtins import map
-from builtins import range
-from builtins import object
 import resource
 
 import numpy as np
@@ -34,7 +26,7 @@ def check_k0(freqs, k0=None, rtol=1E-2, atol=1E-7):
     assert(abs(f0 - freqs[0]) < rtol * df + atol)
 
 
-class LombScargleMemory(object):
+class LombScargleMemory:
     """
     Container class for allocating memory and transferring
     data between the GPU and CPU for Lomb-Scargle computations
@@ -729,7 +721,7 @@ class LombScargleAsyncProcess(GPUAsyncProcess):
 
     """
     def __init__(self, *args, **kwargs):
-        super(LombScargleAsyncProcess, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.nfft_proc = NFFTAsyncProcess(*args, **kwargs)
         self._cpp_defs = self.nfft_proc._cpp_defs
