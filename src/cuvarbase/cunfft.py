@@ -1,9 +1,5 @@
 #!/usr/bin/env python
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-from builtins import object
 
 import sys
 import resource
@@ -21,7 +17,7 @@ from .gpu import current_gpu
 from .utils import find_kernel, _module_reader, default_nvcc_options
 
 
-class NFFTMemory(object):
+class NFFTMemory:
     def __init__(self, sigma, stream, m, use_double=False,
                  precomp_psi=True, **kwargs):
 
@@ -361,7 +357,7 @@ class NFFTAsyncProcess(GPUAsyncProcess):
     """
 
     def __init__(self, *args, **kwargs):
-        super(NFFTAsyncProcess, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.sigma = kwargs.get('sigma', 4)
         self.m = kwargs.get('m', 8)

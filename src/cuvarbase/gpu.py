@@ -51,7 +51,7 @@ _current_gpu: "contextvars.ContextVar[Optional[GpuHandle]]" = (
 )
 
 
-class GpuHandle(object):
+class GpuHandle:
     """Active GPU binding yielded by :func:`initialize_gpu`.
 
     Attributes
