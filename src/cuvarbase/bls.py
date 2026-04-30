@@ -16,7 +16,7 @@ import pycuda.gpuarray as gpuarray
 from pycuda.compiler import SourceModule
 
 from .core import GPUAsyncProcess
-from .gpu import current_gpu
+from .gpu import current_gpu, with_active_gpu
 from .utils import find_kernel, _module_reader, default_nvcc_options
 
 import resource
@@ -379,6 +379,7 @@ class BLSMemory(object):
                          **kwargs)
 
 
+@with_active_gpu
 def eebls_gpu_fast(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
                    ignore_negative_delta_sols=False,
                    functions=None, stream=None, dlogq=0.3,
@@ -552,6 +553,7 @@ def eebls_gpu_fast(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
     return memory.bls
 
 
+@with_active_gpu
 def eebls_gpu_custom(t, y, dy, freqs, q_values, phi_values,
                      ignore_negative_delta_sols=False,
                      freq_batch_size=None, nstreams=5, max_memory=None,
@@ -599,8 +601,6 @@ def eebls_gpu_custom(t, y, dy, freqs, q_values, phi_values,
         Best (q, phi) solution at each frequency
 
     """
-
-    current_gpu()
 
     functions = functions if functions is not None \
         else compile_bls(**kwargs)
@@ -769,6 +769,7 @@ def count_tot_nbins(nbins0, nbinsf, dlogq):
     return ntot
 
 
+@with_active_gpu
 def eebls_gpu(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
               ignore_negative_delta_sols=False,
               nstreams=5, noverlap=3, dlogq=0.2, max_memory=None,
@@ -822,8 +823,6 @@ def eebls_gpu(t, y, dy, freqs, qmin=1e-2, qmax=0.5,
         if isinstance(arr, float) or isinstance(arr, int):
             return arr
         return ext(arr[slice(imin, imax)])
-
-    current_gpu()
 
     functions = functions if functions is not None \
         else compile_bls(**kwargs)
@@ -1082,6 +1081,7 @@ def hone_solution(t, y, dy, f0, df0, q0, dlogq0, phi0, stop=1e-5,
     return f, pn, i, (q, phi)
 
 
+@with_active_gpu
 def eebls_transit_gpu(t, y, dy, fmax_frac=1.0, fmin_frac=1.0,
                       qmin_fac=0.5, qmax_fac=2.0, fmin=None,
                       fmax=None, freqs=None, qvals=None, use_fast=False,

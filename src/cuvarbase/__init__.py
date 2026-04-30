@@ -14,4 +14,4 @@ if "-allow-unsupported-compiler" not in _nvcc_append:
     ).strip()
 del _nvcc_append, _os
 
-from .gpu import initialize_gpu, current_gpu  # noqa: E402, F401
+from .gpu import initialize_gpu, current_gpu, ensure_gpu  # noqa: E402, F401

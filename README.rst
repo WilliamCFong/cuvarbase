@@ -69,6 +69,20 @@ as the script is wrapped in the context manager.
 Instantiating a GPU class outside an ``initialize_gpu`` block raises
 ``RuntimeError`` -- there is no implicit fallback.
 
+The standalone BLS entry points (``eebls_gpu``, ``eebls_gpu_fast``,
+``eebls_gpu_custom``, ``eebls_transit_gpu``) accept an optional
+``device=`` keyword and open the context themselves, so a one-shot
+call can skip the ``with`` block:
+
+.. code:: python
+
+    from cuvarbase.bls import eebls_transit_gpu
+    freqs, powers, sols = eebls_transit_gpu(t, y, dy, device=0)
+
+If ``device`` is omitted and a context is already active, the call
+reuses it. Otherwise it opens one on ``int(os.environ['CUDA_DEVICE'])``
+(defaulting to 0).
+
 If anyone is interested in implementing a multi-device load-balancing
 solution, they are encouraged to do so. Nested ``initialize_gpu``
 blocks on different devices work, but state created in an outer block

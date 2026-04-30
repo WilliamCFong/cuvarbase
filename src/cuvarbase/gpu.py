@@ -36,6 +36,7 @@ Notes
   block on a different device is active.
 """
 import contextvars
+import functools
 import os
 import warnings
 import weakref
@@ -98,6 +99,42 @@ def current_gpu():
             "`with cuvarbase.initialize_gpu(device_id) as gpu: ...`."
         )
     return h
+
+
+@contextmanager
+def ensure_gpu(device_id=None):
+    """Ensure a cuvarbase GPU context is active for the duration.
+
+    - ``device_id=None`` and a context is active: yield it unchanged.
+    - ``device_id=None`` and no context is active: open one on
+      ``int(os.environ.get('CUDA_DEVICE', 0))``.
+    - ``device_id`` is given: always open a fresh context on that
+      device, nesting under any existing context.
+
+    Use this when you want a function to "just work" whether the caller
+    has already wrapped it in ``initialize_gpu`` or not.
+    """
+    if device_id is None and _current_gpu.get() is not None:
+        yield _current_gpu.get()
+        return
+    with initialize_gpu(device_id) as h:
+        yield h
+
+
+def with_active_gpu(func):
+    """Decorator: run ``func`` inside :func:`ensure_gpu`.
+
+    The wrapped function gains an optional ``device=`` keyword argument.
+    If omitted (or ``None``) and a context is already active, the body
+    runs in that context. Otherwise a new context is opened, defaulting
+    to ``CUDA_DEVICE`` (or 0).
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        device = kwargs.pop('device', None)
+        with ensure_gpu(device):
+            return func(*args, **kwargs)
+    return wrapper
 
 
 @contextmanager
